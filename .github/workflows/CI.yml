@@ -1,0 +1,20 @@
+name: Web-Created Workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Pulls code from GitHub into the runner
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Run a test command to see if it works
+      - name: Test Step
+        run: echo "The workflow is successfully running from the cloud!"
