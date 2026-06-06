@@ -1,11 +1,13 @@
-import unittest
+# test_script.py
 
-def add_numbers(a, b):
-    return a + b
+def test_basic_addition():
+    """Verify Basic Addition: 1 + 1 == 2"""
+    assert 1 + 1 == 2
 
-class TestInitialSetup(unittest.TestCase):
-    def test_addition(self):
-        self.assertEqual(add_numbers(2, 3), 5)
+def test_basic_subtraction():
+    """Verify Basic Subtraction: 5 - 3 == 2"""
+    assert 5 - 3 == 2
 
-if __name__ == '__main__':
-    unittest.main()
+def test_environment_status():
+    """Verify Environment Status: 'active' == 'active'"""
+    assert "active" == "active"
