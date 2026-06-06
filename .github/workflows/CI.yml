@@ -1,4 +1,4 @@
-name: Web-Created Workflow
+name: Python Automated Test Workflow
 
 on:
   push:
@@ -11,10 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Pulls code from GitHub into the runner
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Step 2: Run a test command to see if it works
-      - name: Test Step
-        run: echo "The workflow is successfully running from the cloud!"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Run automated test script
+        run: python test_script.py
