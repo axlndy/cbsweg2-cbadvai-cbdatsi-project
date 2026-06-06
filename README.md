@@ -15,7 +15,7 @@ Below is our tentative directory structure for the integrated project:
 project-repo/
 ├── .github/
 │   └── workflows/
-│       └── test.yml         # CI/CD automated python test script
+│       └── CI.yml         # CI/CD automated python test script
 ├── src/                     # Source code for the main application
 ├── data/                    # Datasets used for CBDATSI and CBADVAI
 ├── models/                  # AI/ML models and training scripts
