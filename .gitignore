@@ -1,0 +1,10 @@
+# Ignore raw data
+data/raw/
+*.xlsx
+*.docx
+
+# Ignore virtual environment
+.venv/
+
+# Ignore Jupyter auto-saves
+.ipynb_checkpoints/
