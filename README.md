@@ -15,10 +15,15 @@ Below is our tentative directory structure for the integrated project:
 project-repo/
 ├── .github/
 │   └── workflows/
-│       └── CI.yml         # CI/CD automated python test script
-├── src/                     # Source code for the main application
+│       └── python-tests.yml   # GitHub Actions automated testing workflow
+├── src/                           # Source code for the main application
+│      ├── __init__.py            # Makes the directory an importable package
+│      └── student_eda.py         # Main data processing pipeline and visualization script                 
 ├── data/
-      └── Database paper.xlsx        # Raw data file used for CBDATSI and CBADVAI
+│      └── Database paper.xlsx        # Raw data file used for CBDATSI and CBADVAI
+├── tests/
+│   ├── __init__.py            # Makes the directory an importable package
+│   └── test_student_eda.py    # Pytest unit tests tracking data cleaning and mapping logic
 ├── models/                  # AI/ML models and training scripts
 ├── docs/                    # Project documentation and Jira exports
 ├── requirements.txt           # Dependency list
