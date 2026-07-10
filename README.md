@@ -17,7 +17,9 @@ project-repo/
 │   └── workflows/
 │       └── CI.yml         # CI/CD automated python test script
 ├── src/                     # Source code for the main application
-├── data/                    # Datasets used for CBDATSI and CBADVAI
+├── data/
+      └── Database paper.xlsx        # Raw data file used for CBDATSI and CBADVAI
 ├── models/                  # AI/ML models and training scripts
 ├── docs/                    # Project documentation and Jira exports
+├── requirements.txt           # Dependency list
 └── README.md
