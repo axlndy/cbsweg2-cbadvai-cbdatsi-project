@@ -22,8 +22,7 @@ project-repo/
 ├── data/
 │      └── Database paper.xlsx        # Raw data file used for CBDATSI and CBADVAI
 ├── tests/
-│   ├── __init__.py            # Makes the directory an importable package
-│   └── test_student_eda.py    # Pytest unit tests tracking data cleaning and mapping logic
+│      └── test_student_eda.py    # Pytest unit tests tracking data cleaning and mapping logic
 ├── models/                  # AI/ML models and training scripts
 ├── docs/                    # Project documentation and Jira exports
 ├── requirements.txt           # Dependency list
