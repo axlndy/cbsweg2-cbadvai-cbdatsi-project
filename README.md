@@ -15,7 +15,7 @@ EduPredict is an integrated triad project that investigates the factors influenc
 
 The project utilizes the **Dataset of Factors Affecting Learning Outcomes of Students at the University of Education, Vietnam National University, Hanoi** published in *Data in Brief (2025)*. The dataset contains demographic, socioeconomic, institutional, behavioral, and academic variables collected from 2,170 students and alumni.
 
-This repository serves as the primary development repository shared across CBSWEG2, CBADVAI, and CBDATSI.
+This repository serves as the primary development repository shared across CBSWEG2, CBADVAI, and CBDATSI. The repository follows a modular software engineering approach to facilitate collaborative development, automated testing, reproducibility, and future integration of machine learning models.
 
 ---
 
@@ -149,14 +149,17 @@ cbsweg2-cbadvai-cbdatsi-project/
 │       └── python-tests.yml      # GitHub Actions automated testing workflow
 │
 ├── data/
-│   └── Database paper.xlsx       # Raw dataset used across CBDATSI and CBADVAI
+│   ├── raw/
+│   │   ├── Database paper.xlsx   # Raw dataset used across CBDATSI and CBADVAI
+│   │   └── CODEBOOK.docx         # Dataset codebook
+│   └── processed/                # Future processed datasets
 │
 ├── notebooks/
 │   └── 01_eda.ipynb              # CBDATSI Phase 1 notebook (Dataset Description, Data Cleaning, EDA, Research Question)
 │
 ├── src/
 │   ├── __init__.py               # Makes src an importable Python package
-│   └── student_eda.py            # Refactored EDA pipeline for automation and testing
+│   └── student_eda.py            # Modular Python implementation of the CBDATSI Phase 1 workflow
 │
 ├── tests/
 │   └── test_student_eda.py       # Pytest unit tests for data preparation modules
