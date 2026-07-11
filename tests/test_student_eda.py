@@ -3,8 +3,11 @@
 import pytest
 import pandas as pd
 import numpy as np
+import os
+import tempfile
 
 from src.student_eda import (
+    load_and_cache_dataset,
     validate_dataset,
     clean_and_typecast_data,
     perform_feature_engineering
@@ -17,7 +20,7 @@ def dummy_student_data():
     Generates a valid mock student dataset for preprocessing tests.
     """
     return pd.DataFrame({
-        "Year": [3.0, 5.0, 4.0],
+        "Year": [3, 5, 4],
         "Gender": [1, 2, 1],
         "Policy_Stu": [2, 2, 1],
         "Minority_Stu": [2, 1, 2],
@@ -41,6 +44,68 @@ def dummy_student_data():
         "InfuenceF_Friends": [4, 3, 5]
     })
 
+def test_load_and_cache_dataset_first_run(dummy_student_data):
+    """
+    Verifies that the raw Excel dataset is loaded and a cache file
+    is created when no cache exists.
+    """
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+
+        raw_path = os.path.join(temp_dir, "sample.xlsx")
+        cache_path = os.path.join(temp_dir, "dataset_cache.pkl")
+
+        # Create a temporary Excel dataset
+        dummy_student_data.to_excel(raw_path, index=False)
+
+        # Execute
+        loaded_df = load_and_cache_dataset(raw_path, cache_path)
+
+        # Verify
+        assert os.path.exists(cache_path)
+
+        pd.testing.assert_frame_equal(
+            loaded_df,
+            dummy_student_data
+        )
+
+def test_load_and_cache_dataset_from_cache(dummy_student_data):
+    """
+    Verifies that an existing cache is loaded instead of reading
+    the Excel file again.
+    """
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+
+        raw_path = os.path.join(temp_dir, "sample.xlsx")
+        cache_path = os.path.join(temp_dir, "dataset_cache.pkl")
+
+        # Create both files
+        dummy_student_data.to_excel(raw_path, index=False)
+        dummy_student_data.to_pickle(cache_path)
+
+        loaded_df = load_and_cache_dataset(
+            raw_path,
+            cache_path
+        )
+
+        pd.testing.assert_frame_equal(
+            loaded_df,
+            dummy_student_data
+        )
+
+def test_load_and_cache_dataset_missing_file():
+    """
+    Verifies that loading fails when the raw dataset does not exist.
+    """
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+
+        raw_path = os.path.join(temp_dir, "missing.xlsx")
+        cache_path = os.path.join(temp_dir, "dataset_cache.pkl")
+
+        with pytest.raises(FileNotFoundError):
+            load_and_cache_dataset(raw_path, cache_path)
 
 def test_validate_dataset(dummy_student_data):
     """
