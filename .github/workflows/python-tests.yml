@@ -2,9 +2,15 @@ name: Automated Python Analytics Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - development
+      - "feature/**"
+
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - development
 
 jobs:
   build:

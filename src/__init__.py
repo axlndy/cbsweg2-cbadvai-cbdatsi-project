@@ -1,0 +1,3 @@
+"""
+EduPredict source package.
+"""
