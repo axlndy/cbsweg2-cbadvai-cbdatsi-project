@@ -1,8 +1,9 @@
 # tests/test_student_eda.py
+from unittest.mock import patch
 import pytest
 import pandas as pd
 import numpy as np
-from src.student_eda import clean_and_typecast_data, perform_feature_engineering
+from src.student_eda import load_and_cache_dataset, clean_and_typecast_data, perform_feature_engineering
 
 @pytest.fixture
 def dummy_student_data():
@@ -28,6 +29,18 @@ def dummy_student_data():
         'InfuenceF_Friends': [4, 3, 5]
     })
 
+@patch('os.path.exists', return_value=True)
+@patch('pandas.read_pickle')
+def test_load_and_cache_dataset_from_cache(mock_read_pickle, mock_exists, dummy_student_data):
+    """Verifies that data is correctly loaded from the pickle cache when it exists."""
+    mock_read_pickle.return_value = dummy_student_data
+    
+    # Run dataset load pointing to mock paths
+    df = load_and_cache_dataset("data/fake_raw.xlsx", "data/fake_cache.pkl")
+    
+    assert df.shape == (3, 18)
+    mock_read_pickle.assert_called_once_with("data/fake_cache.pkl")
+
 def test_clean_and_typecast_data(dummy_student_data):
     """Checks that floated survey columns are accurately cast into structural integers."""
     processed_df = clean_and_typecast_data(dummy_student_data)
@@ -41,7 +54,6 @@ def test_perform_feature_engineering(dummy_student_data):
     processed_df = clean_and_typecast_data(dummy_student_data)
     final_df = perform_feature_engineering(processed_df)
     
-    # Assert descriptive targets mapped correctly
     assert final_df['GPA_Label'].iloc[0] == 'Fair'
     assert final_df['GPA_Label'].iloc[2] == 'Poor'
     assert final_df['Gender_Label'].iloc[1] == 'Female'
