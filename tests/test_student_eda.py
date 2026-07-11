@@ -1,5 +1,5 @@
 # tests/test_student_eda.py
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import pytest
 import pandas as pd
 import numpy as np
@@ -35,11 +35,34 @@ def test_load_and_cache_dataset_from_cache(mock_read_pickle, mock_exists, dummy_
     """Verifies that data is correctly loaded from the pickle cache when it exists."""
     mock_read_pickle.return_value = dummy_student_data
     
-    # Run dataset load pointing to mock paths
     df = load_and_cache_dataset("data/fake_raw.xlsx", "data/fake_cache.pkl")
     
     assert df.shape == (3, 18)
     mock_read_pickle.assert_called_once_with("data/fake_cache.pkl")
+
+@patch('os.path.exists')
+@patch('pandas.read_excel')
+@patch('pandas.DataFrame.to_pickle')
+@patch('os.makedirs')
+def test_load_dataset_first_try_success(mock_makedirs, mock_to_pickle, mock_read_excel, mock_exists, dummy_student_data):
+    """Tests the first-run scenario where the cache is missing but the raw Excel file exists."""
+    # Side effect: cache path does NOT exist (False), but raw Excel path DOES exist (True)
+    mock_exists.side_effect = lambda path: path == "data/fake_raw.xlsx"
+    mock_read_excel.return_value = dummy_student_data
+    
+    df = load_and_cache_dataset("data/fake_raw.xlsx", "data/fake_cache.pkl")
+    
+    assert df.shape == (3, 18)
+    mock_read_excel.assert_called_once_with("data/fake_raw.xlsx")
+    mock_to_pickle.assert_called_once_with("data/fake_cache.pkl")
+
+@patch('os.path.exists', return_value=False)
+def test_load_dataset_missing_file_raises_error(mock_exists):
+    """Verifies that a FileNotFoundError is raised if both cache and raw files are missing."""
+    with pytest.raises(FileNotFoundError) as exc_info:
+        load_and_cache_dataset("data/missing_raw.xlsx", "data/missing_cache.pkl")
+        
+    assert "Missing raw data file at: data/missing_raw.xlsx" in str(exc_info.value)
 
 def test_clean_and_typecast_data(dummy_student_data):
     """Checks that floated survey columns are accurately cast into structural integers."""
