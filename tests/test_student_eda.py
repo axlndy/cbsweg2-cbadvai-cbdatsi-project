@@ -20,7 +20,7 @@ def dummy_student_data():
     Generates a valid mock student dataset for preprocessing tests.
     """
     return pd.DataFrame({
-        "Year": [3, 5, 4],
+        "Year": [3, 5, 6],
         "Gender": [1, 2, 1],
         "Policy_Stu": [2, 2, 1],
         "Minority_Stu": [2, 1, 2],
