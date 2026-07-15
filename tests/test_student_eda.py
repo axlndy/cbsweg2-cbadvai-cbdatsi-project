@@ -153,7 +153,7 @@ def test_perform_feature_engineering(dummy_student_data):
     processed_df = clean_and_typecast_data(dummy_student_data)
     final_df = perform_feature_engineering(processed_df)
 
-    assert final_df["GPA_Label"].iloc[0] == "Invalid_Label"
+    assert final_df["GPA_Label"].iloc[0] == "Fair"
     assert final_df["GPA_Label"].iloc[2] == "Poor"
 
     assert final_df["Gender_Label"].iloc[1] == "Female"
