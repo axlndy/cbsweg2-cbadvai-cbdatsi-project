@@ -13,11 +13,15 @@ from src.student_eda import (
     perform_feature_engineering
 )
 
+# ==========================================
+#                  FIXTURES
+# ==========================================
 
 @pytest.fixture
 def dummy_student_data():
     """
     Generates a valid mock student dataset for preprocessing tests.
+    Contains all 22 required columns mapped to valid categorical integer ranges.
     """
     return pd.DataFrame({
         "Year": [3, 5, 4],
@@ -44,14 +48,17 @@ def dummy_student_data():
         "InfuenceF_Friends": [4, 3, 5]
     })
 
+
+# ==========================================
+#         MODULE 1: LOAD & CACHE
+# ==========================================
+
 def test_load_and_cache_dataset_first_run(dummy_student_data):
     """
     Verifies that the raw Excel dataset is loaded and a cache file
     is created when no cache exists.
     """
-
     with tempfile.TemporaryDirectory() as temp_dir:
-
         raw_path = os.path.join(temp_dir, "sample.xlsx")
         cache_path = os.path.join(temp_dir, "dataset_cache.pkl")
 
@@ -63,20 +70,15 @@ def test_load_and_cache_dataset_first_run(dummy_student_data):
 
         # Verify
         assert os.path.exists(cache_path)
+        pd.testing.assert_frame_equal(loaded_df, dummy_student_data)
 
-        pd.testing.assert_frame_equal(
-            loaded_df,
-            dummy_student_data
-        )
 
 def test_load_and_cache_dataset_from_cache(dummy_student_data):
     """
     Verifies that an existing cache is loaded instead of reading
     the Excel file again.
     """
-
     with tempfile.TemporaryDirectory() as temp_dir:
-
         raw_path = os.path.join(temp_dir, "sample.xlsx")
         cache_path = os.path.join(temp_dir, "dataset_cache.pkl")
 
@@ -84,28 +86,26 @@ def test_load_and_cache_dataset_from_cache(dummy_student_data):
         dummy_student_data.to_excel(raw_path, index=False)
         dummy_student_data.to_pickle(cache_path)
 
-        loaded_df = load_and_cache_dataset(
-            raw_path,
-            cache_path
-        )
+        loaded_df = load_and_cache_dataset(raw_path, cache_path)
 
-        pd.testing.assert_frame_equal(
-            loaded_df,
-            dummy_student_data
-        )
+        pd.testing.assert_frame_equal(loaded_df, dummy_student_data)
+
 
 def test_load_and_cache_dataset_missing_file():
     """
     Verifies that loading fails when the raw dataset does not exist.
     """
-
     with tempfile.TemporaryDirectory() as temp_dir:
-
         raw_path = os.path.join(temp_dir, "missing.xlsx")
         cache_path = os.path.join(temp_dir, "dataset_cache.pkl")
 
         with pytest.raises(FileNotFoundError):
             load_and_cache_dataset(raw_path, cache_path)
+
+
+# ==========================================
+#         MODULE 2: VALIDATION
+# ==========================================
 
 def test_validate_dataset(dummy_student_data):
     """
@@ -135,6 +135,21 @@ def test_validate_dataset_invalid_value(dummy_student_data):
         validate_dataset(invalid_df)
 
 
+def test_validate_dataset_empty():
+    """
+    Verifies that validation fails safely if an entirely empty dataset is passed.
+    Because the dataframe is empty, it will trigger the missing columns check first.
+    """
+    empty_df = pd.DataFrame()
+    
+    with pytest.raises(ValueError, match="Missing required columns"): 
+        validate_dataset(empty_df)
+
+
+# ==========================================
+#       MODULE 3: CLEAN & TYPECAST
+# ==========================================
+
 def test_clean_and_typecast_data(dummy_student_data):
     """
     Verifies that numeric survey columns are converted to integer data types.
@@ -146,6 +161,25 @@ def test_clean_and_typecast_data(dummy_student_data):
     assert processed_df["Year"].iloc[0] == 3
 
 
+def test_clean_and_typecast_data_type_corruption(dummy_student_data):
+    """
+    Assures that if categorical text values are corrupted (e.g., a string instead of an int), 
+    the pandas astype() function catches it and fails safely.
+    """
+    corrupted_df = dummy_student_data.copy()
+    
+    # Sabotage the data: Inject a string into a numeric column
+    corrupted_df.loc[0, "GPA"] = "High" 
+
+    # Pandas throws a TypeError (or ValueError in older versions) when trying to cast a string to int64
+    with pytest.raises((TypeError, ValueError)): 
+        clean_and_typecast_data(corrupted_df)
+
+
+# ==========================================
+#     MODULE 4: FEATURE ENGINEERING
+# ==========================================
+
 def test_perform_feature_engineering(dummy_student_data):
     """
     Verifies that encoded survey responses are correctly mapped to descriptive labels.
@@ -153,11 +187,12 @@ def test_perform_feature_engineering(dummy_student_data):
     processed_df = clean_and_typecast_data(dummy_student_data)
     final_df = perform_feature_engineering(processed_df)
 
-    assert final_df["GPA_Label"].iloc[0] == "Fair"
-    assert final_df["GPA_Label"].iloc[2] == "Poor"
-
-    assert final_df["Gender_Label"].iloc[1] == "Female"
-
-    assert final_df["Poor_Stu_Label"].iloc[1] == "Yes (Poor)"
-
-    assert final_df["Policy_Stu_Label"].iloc[0] == "No (Not Supported)"
+    # Validate mapping accuracy based on our specific mapping dictionary
+    assert final_df["GPA_Label"].iloc[0] == "Fair"   # GPA 3 -> Fair
+    assert final_df["GPA_Label"].iloc[2] == "Poor"   # GPA 1 -> Poor
+    
+    assert final_df["Gender_Label"].iloc[1] == "Female" # Gender 2 -> Female
+    
+    assert final_df["Poor_Stu_Label"].iloc[1] == "Yes (Poor)" # Poor_Stu 1 -> Yes (Poor)
+    
+    assert final_df["Policy_Stu_Label"].iloc[0] == "No (Not Supported)" # Policy_Stu 2 -> No
