@@ -366,11 +366,11 @@ if __name__ == "__main__":
     PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
 
     RAW_DATA = os.path.join(RAW_DIR, "Database paper.xlsx")
-    # CACHE_DATA = os.path.join(PROCESSED_DIR, "dataset_cache.pkl")
+    CACHE_DATA = os.path.join(PROCESSED_DIR, "dataset_cache.pkl")
 
     try:
         # 1. Load dataset
-        raw_df = load_and_cache_dataset(RAW_DATA, CACHE_DATA)
+        raw_df = load_and_cache_dataset(RAW_DATA, "data/ghost.pkl")
 
         # 2. Validate dataset
         validate_dataset(raw_df)
