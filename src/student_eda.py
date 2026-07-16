@@ -8,7 +8,7 @@ def load_and_cache_dataset(raw_path: str, cache_path: str) -> pd.DataFrame:
     """Loads dataset from a pickle cache if it exists, otherwise from Excel."""
     if os.path.exists(cache_path):
         print("Loading data from cache...")
-        df = pd.read_pickle(cache_path)
+        df = pd.read_pickle(raw_path)
     else:
         print("Loading raw Excel file and building cache...")
         if not os.path.exists(raw_path):
