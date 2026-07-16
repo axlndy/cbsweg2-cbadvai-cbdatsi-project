@@ -186,7 +186,7 @@ def test_perform_feature_engineering(dummy_student_data):
     processed_df = clean_and_typecast_data(dummy_student_data)
     final_df = perform_feature_engineering(processed_df)
 
-    # Validate mapping accuracy based on our specific mapping dictionary
+    # Validate mapping accuracy based on our specific mapping  dictionary
     assert final_df["GPA_Label"].iloc[0] == "Fair"   # GPA 3 -> Fair
     assert final_df["GPA_Label"].iloc[2] == "Poor"   # GPA 1 -> Poor
     
