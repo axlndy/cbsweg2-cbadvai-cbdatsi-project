@@ -13,24 +13,20 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 from student_eda import load_and_cache_dataset, clean_and_typecast_data
 
-def build_and_train_mlp(df: pd.DataFrame, feature_cols: list, target_col: str):
+def build_and_train_mlp(df: pd.DataFrame, feature_cols: list, target_col: str, hidden_topology=(64, 32)):
     """
     Builds and trains a Multi-Layer Perceptron (Neural Network) classifier.
     Triggers scenarios matching: EDP-UT-023, EDP-UT-024, EDP-UT-026, and EDP-UT-027.
     """
     print(f"\n--- Initializing Multi-Layer Perceptron (MLP) Training ---")
     
-    # Extract features and target
     X = df[feature_cols].values
     y = df[target_col].values
 
-    # MLP is highly sensitive to feature scaling, so we apply StandardScaler
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
     # 1. Structural Validation check (EDP-UT-026)
-    # Checking that hidden layer parameters are structurally sound (> 0 dimensions)
-    hidden_topology = (64, 32)
     if any(dim <= 0 for dim in hidden_topology):
         raise ValueError("ValueError: Hidden layer configuration array cannot contain zero or negative dimensions.")
 
