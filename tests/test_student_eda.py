@@ -167,14 +167,13 @@ def test_clean_and_typecast_data_type_corruption(dummy_student_data):
     the pandas astype() function catches it and fails safely.
     """
     corrupted_df = dummy_student_data.copy()
+
+    corrupted_df["GPA"] = corrupted_df["GPA"].astype(object)
     
-    # Sabotage the data: Inject a string into a numeric column
     corrupted_df.loc[0, "GPA"] = "High" 
 
-    # Pandas throws a TypeError (or ValueError in older versions) when trying to cast a string to int64
     with pytest.raises((TypeError, ValueError)): 
         clean_and_typecast_data(corrupted_df)
-
 
 # ==========================================
 #     MODULE 4: FEATURE ENGINEERING
