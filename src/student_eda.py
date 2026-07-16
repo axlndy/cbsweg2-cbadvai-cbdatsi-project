@@ -8,7 +8,7 @@ def load_and_cache_dataset(raw_path: str, cache_path: str) -> pd.DataFrame:
     """Loads dataset from a pickle cache if it exists, otherwise from Excel."""
     if os.path.exists(cache_path):
         print("Loading data from cache...")
-        df = pd.read_pickle(raw_path)
+        df = pd.read_pickle(cache_path)
     else:
         print("Loading raw Excel file and building cache...")
         if not os.path.exists(raw_path):
@@ -151,7 +151,7 @@ def clean_and_typecast_data(df: pd.DataFrame) -> pd.DataFrame:
     target_columns = ['Year', 'Gender', 'GPA', 'Time_Studying', 'Time_Friends', 'Adapt_Learning_Uni']
     for col in target_columns:
         if col in df_cleaned.columns:
-            df_cleaned[col] = df_cleaned[col].astype('int64')
+            df_cleaned[col] = df_cleaned[col].astype('float64')
     return df_cleaned
 
 def perform_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
