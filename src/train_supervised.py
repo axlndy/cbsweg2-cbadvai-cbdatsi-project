@@ -28,7 +28,7 @@ def train_ordinal_model(df: pd.DataFrame, feature_cols: list, target_col: str):
     
     print("Optimizing parameter weights (Fitting model)...")
     # fit() terminates optimization and returns the trained results object
-    res = model.fit(method='bfgs', disp=False maxiter=1) 
+    res = model.fit(method='bfgs', disp=False, maxiter=1) 
     
     return res
 
