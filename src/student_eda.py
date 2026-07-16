@@ -151,7 +151,7 @@ def clean_and_typecast_data(df: pd.DataFrame) -> pd.DataFrame:
     target_columns = ['Year', 'Gender', 'GPA', 'Time_Studying', 'Time_Friends', 'Adapt_Learning_Uni']
     for col in target_columns:
         if col in df_cleaned.columns:
-            df_cleaned[col] = df_cleaned[col].astype('float64')
+            df_cleaned[col] = df_cleaned[col].astype('int64')
     return df_cleaned
 
 def perform_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
@@ -366,7 +366,7 @@ if __name__ == "__main__":
     PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
 
     RAW_DATA = os.path.join(RAW_DIR, "Database paper.xlsx")
-    CACHE_DATA = os.path.join(PROCESSED_DIR, "dataset_cache.pkl")
+    # CACHE_DATA = os.path.join(PROCESSED_DIR, "dataset_cache.pkl")
 
     try:
         # 1. Load dataset
