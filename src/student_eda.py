@@ -52,7 +52,7 @@ def validate_dataset(df: pd.DataFrame) -> bool:
         "Time_Friends",
         "Time_SocicalMedia",
         "Time_Studying",
-        "GPA",
+        #"GPA",
         "Adapt_Learning_Uni",
         "Study_Methods",
         "SupportOf_Uni",
@@ -370,7 +370,7 @@ if __name__ == "__main__":
 
     try:
         # 1. Load dataset
-        raw_df = load_and_cache_dataset(RAW_DATA, "data/ghost.pkl")
+        raw_df = load_and_cache_dataset(RAW_DATA, CACHE_DATA)
 
         # 2. Validate dataset
         validate_dataset(raw_df)
