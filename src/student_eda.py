@@ -159,7 +159,7 @@ def perform_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     df_mapped = df.copy()
 
     # Target and Demographic Mapping
-    df_mapped['GPA_Label'] = df_mapped['GPA'].map({1: 'PoorSSSSS', 2: 'Average', 3: 'Fair', 4: 'Good', 5: 'Excellent'})
+    df_mapped['GPA_Label'] = df_mapped['GPA'].map({1: 'Poor', 2: 'Average', 3: 'Fair', 4: 'Good', 5: 'Excellent'})
     df_mapped['Year_Label'] = df_mapped['Year'].map({1: 'First-year', 2: 'Second-year', 3: 'Third-year', 4: 'Fourth-year', 5: 'Graduated'})
     df_mapped['Gender_Label'] = df_mapped['Gender'].map({1: 'Male', 2: 'Female'})
 
