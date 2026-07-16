@@ -52,7 +52,7 @@ def validate_dataset(df: pd.DataFrame) -> bool:
         "Time_Friends",
         "Time_SocicalMedia",
         "Time_Studying",
-        #"GPA",
+        "GPAA",
         "Adapt_Learning_Uni",
         "Study_Methods",
         "SupportOf_Uni",
