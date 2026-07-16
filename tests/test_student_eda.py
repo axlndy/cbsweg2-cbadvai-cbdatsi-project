@@ -36,7 +36,7 @@ def dummy_student_data():
         "Time_Friends": [3, 2, 5],
         "Time_SocicalMedia": [1, 5, 3],
         "Time_Studying": [2, 4, 1],
-        #"GPA": [3, 4, 1],
+        "GPA": [3, 4, 1],
         "Adapt_Learning_Uni": [4, 5, 2],
         "Study_Methods": [4, 5, 3],
         "SupportOf_Uni": [4, 5, 3],
