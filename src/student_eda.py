@@ -1,4 +1,4 @@
-# src/student_eda.py
+# src/student_eda.py 
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
