@@ -1,27 +1,29 @@
 # src/cbdatsi/inference.py
 import pandas as pd
-from scipy.stats import f_oneway, shapiro, levene
+import scipy.stats as stats
 
-def run_anova_inference(df: pd.DataFrame, cluster_col: str = 'Cluster', target_col: str = 'GPA') -> dict:
-    """Performs normality checks, variance homogeneity testing, and One-Way ANOVA."""
-    clusters = sorted(df[cluster_col].unique())
-    group_data = [df[df[cluster_col] == c][target_col].dropna() for c in clusters]
+def check_chisquare_assumptions(expected_freq: pd.DataFrame):
+    """Checks the Chi-Square assumption that all expected counts are >= 5."""
+    print("--- Assumption Check: Expected Counts ---")
+    min_expected = expected_freq.min().min()
+    print(f"Minimum Expected Count: {min_expected:.2f}")
+    if min_expected >= 5:
+        print("Conclusion: All expected counts are at least 5. Assumption MET.\n")
+    else:
+        print("Conclusion: Some expected counts are below 5. Assumption VIOLATED.\n")
+
+def perform_chisquare_independence(df: pd.DataFrame, target_col: str = 'GPA', cluster_col: str = 'Cluster'):
+    """Executes the Chi-Square Test of Independence as taught in class."""
+    contingency_table = pd.crosstab(df[cluster_col], df[target_col])
     
-    results = {}
+    chi2, p_val, dof, expected = stats.chi2_contingency(contingency_table)
+    expected_df = pd.DataFrame(expected, index=contingency_table.index, columns=contingency_table.columns)
     
-    # 1. Normality check (Shapiro-Wilk) per cluster group
-    normality_results = {}
-    for c, data in zip(clusters, group_data):
-        stat, pval = shapiro(data)
-        normality_results[f"Cluster_{c}"] = {'statistic': stat, 'p_value': pval}
-    results['normality'] = normality_results
+    check_chisquare_assumptions(expected_df)
     
-    # 2. Homogeneity of variance (Levene's test)
-    stat_lev, p_lev = levene(*group_data)
-    results['levene'] = {'statistic': stat_lev, 'p_value': p_lev}
+    print(f"--- Statistical Inference Results (Chi-Square Test of Independence) ---")
+    print(f"Degrees of Freedom (df): {dof}")
+    print(f"Chi-Square Statistic: {chi2:.4f}")
+    print(f"p-value: {p_val:.4e}\n")
     
-    # 3. One-Way ANOVA test
-    stat_anova, p_anova = f_oneway(*group_data)
-    results['anova'] = {'f_statistic': stat_anova, 'p_value': p_anova}
-    
-    return results
+    return chi2, p_val, dof, contingency_table
