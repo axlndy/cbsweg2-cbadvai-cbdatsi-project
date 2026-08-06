@@ -130,3 +130,61 @@ def plot_confusion_matrices(metrics_list, model_names, class_labels=[1, 2, 3, 4,
 
     plt.tight_layout()
     plt.show()
+
+
+def plot_feature_weights_heatmap(weights_df):
+    """
+    Generates a concise matrix heatmap comparing normalized feature weights across all models.
+    """
+    model_cols = [col for col in weights_df.columns if col != 'Overall Mean Weight']
+    sorted_df = weights_df[model_cols].loc[weights_df[model_cols].mean(axis=1).sort_values(ascending=False).index]
+
+    plt.figure(figsize=(10, 6))
+    sns.heatmap(
+        sorted_df, 
+        annot=True, 
+        fmt=".3f", 
+        cmap="YlGnBu", 
+        linewidths=1, 
+        linecolor="black",
+        cbar_kws={'label': 'Normalized Feature Weight'}
+    )
+    plt.title('Feature Weight Mapping Summary Matrix Across Models', fontsize=13, fontweight='bold')
+    plt.xlabel('Model Architecture', fontweight='bold', fontsize=11)
+    plt.ylabel('Selected Features', fontweight='bold', fontsize=11)
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_average_feature_weights(weights_df):
+    """
+    Generates a horizontal bar chart displaying the overall average feature weight across all evaluated models.
+    """
+    model_cols = [col for col in weights_df.columns if col != 'Overall Mean Weight']
+    mean_weights = weights_df[model_cols].mean(axis=1).sort_values(ascending=True)
+
+    plt.figure(figsize=(10, 6))
+    colors = sns.color_palette("viridis", len(mean_weights))
+    
+    bars = plt.barh(mean_weights.index, mean_weights.values, color=colors, edgecolor='black', alpha=0.85)
+    
+    # Value annotations on each bar
+    for bar in bars:
+        width = bar.get_width()
+        plt.text(
+            width + 0.003, 
+            bar.get_y() + bar.get_height() / 2, 
+            f"{width:.4f}", 
+            va='center', 
+            ha='left', 
+            fontweight='bold', 
+            fontsize=10
+        )
+
+    plt.title('Overall Mean Feature Weight Mapping (Averaged Across Models)', fontsize=13, fontweight='bold')
+    plt.xlabel('Mean Normalized Importance Weight', fontsize=11, fontweight='bold')
+    plt.ylabel('Selected Feature Vectors', fontsize=11, fontweight='bold')
+    plt.xlim(0, max(mean_weights.values) * 1.15)
+    plt.grid(True, linestyle='--', alpha=0.5, axis='x')
+    plt.tight_layout()
+    plt.show()
