@@ -39,8 +39,11 @@ def evaluate_dummy_baseline(X_train, y_train, X_test, y_test, strategy="most_fre
     return evaluate_ordinal_model(y_test, y_pred, model_name=f"Dummy Baseline ({strategy})")
 
 
-def run_full_evaluation(X_train, y_train, X_test, y_test, grid_lr, grid_mlp, grid_rf):
-    """Evaluates all trained candidate models against test data using ordinal metrics."""
+def run_full_evaluation(X_train, y_train, X_test, y_test, grid_lr, grid_mlp, grid_rf, rf_label="Random Forest"):
+    """
+    Evaluates trained candidate models against test data using ordinal metrics.
+    `rf_label` controls the label displayed on evaluation charts (e.g. "Random Forest" or "Improved RF").
+    """
     metrics_dummy = evaluate_dummy_baseline(X_train, y_train, X_test, y_test, strategy="most_frequent")
 
     y_pred_lr = grid_lr.predict(X_test)
@@ -49,9 +52,9 @@ def run_full_evaluation(X_train, y_train, X_test, y_test, grid_lr, grid_mlp, gri
 
     metrics_lr = evaluate_ordinal_model(y_test, y_pred_lr, model_name="Ordinal LR")
     metrics_mlp = evaluate_ordinal_model(y_test, y_pred_mlp, model_name="Optimized MLP")
-    metrics_rf = evaluate_ordinal_model(y_test, y_pred_rf, model_name="Improved RF")
+    metrics_rf = evaluate_ordinal_model(y_test, y_pred_rf, model_name=rf_label)
 
-    models = ['Dummy Baseline', 'Ordinal LR', 'Optimized MLP', 'Improved RF']
+    models = ['Dummy Baseline', 'Ordinal LR', 'Optimized MLP', rf_label]
     metrics_list = [metrics_dummy, metrics_lr, metrics_mlp, metrics_rf]
 
     return models, metrics_list

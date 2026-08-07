@@ -72,13 +72,20 @@ def plot_rf_tuning_heatmap(grid_rf):
     plt.show()
 
 
-def plot_model_metrics_comparison(metrics_list, model_names):
-    """Plots side-by-side bar charts for Macro F1, MAE, and QWK across models."""
+def plot_model_metrics_comparison(metrics_list, model_names, include_qwk=False):
+    """
+    Plots side-by-side bar charts for model evaluation.
+    - include_qwk=False: Plots Macro F1 and MAE (2 subplots for initial comparison).
+    - include_qwk=True: Plots Macro F1, MAE, and QWK (3 subplots for final comparison).
+    """
     f1s = [m['Macro_F1'] for m in metrics_list]
     maes = [m['MAE'] for m in metrics_list]
-    qwks = [m['QWK'] for m in metrics_list]
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    if include_qwk:
+        qwks = [m['QWK'] for m in metrics_list]
+        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    else:
+        fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 
     # Macro F1
     sns.barplot(x=model_names, y=f1s, ax=axes[0], palette='viridis', edgecolor='black')
@@ -95,11 +102,12 @@ def plot_model_metrics_comparison(metrics_list, model_names):
         axes[1].text(i, v + 0.02, f"{v:.4f}", ha='center', fontweight='bold')
 
     # QWK
-    sns.barplot(x=model_names, y=qwks, ax=axes[2], palette='mako', edgecolor='black')
-    axes[2].set_title('Test Set: QWK (Higher is Better)', fontweight='bold')
-    axes[2].set_ylim(min(0, min(qwks)), max(qwks) * 1.25 if max(qwks) > 0 else 0.5)
-    for i, v in enumerate(qwks): 
-        axes[2].text(i, v + 0.005, f"{v:.4f}", ha='center', fontweight='bold')
+    if include_qwk:
+        sns.barplot(x=model_names, y=qwks, ax=axes[2], palette='mako', edgecolor='black')
+        axes[2].set_title('Test Set: QWK (Higher is Better)', fontweight='bold')
+        axes[2].set_ylim(min(0, min(qwks)), max(qwks) * 1.25 if max(qwks) > 0 else 0.5)
+        for i, v in enumerate(qwks): 
+            axes[2].text(i, v + 0.005, f"{v:.4f}", ha='center', fontweight='bold')
 
     plt.tight_layout()
     plt.show()
