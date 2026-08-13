@@ -1,47 +1,63 @@
+# tests/conftest.py
 import pytest
 import pandas as pd
 import numpy as np
+
 from src.cbadvai.preprocessing import SELECTED_FEATURES
 
-# Strict baseline contract of expected survey features
-EXPECTED_FEATURES = [
-    'Study_Methods', 
-    'Time_Studying', 
-    'Time_Friends', 
-    'Time_SocicalMedia', 
-    'Adapt_Learning_Uni', 
-    'Policy_Stu', 
-    'SupportOf_Uni', 
-    'SupportOf_Lec', 
-    'Facilitie_Uni', 
-    'Quality_Lecturer', 
-    'TrainingCurriculum'
-]
+
+@pytest.fixture
+def dummy_student_data():
+    """
+    Generates a valid mock student dataset (CBDATSI module contract).
+
+    The fixture contains all 22 required dataset columns and uses
+    valid categorical/ordinal codes based on the CBDATSI data dictionary.
+    """
+    return pd.DataFrame({
+        "Year": [3, 5, 4, 1, 2],
+        "Gender": [1, 2, 1, 2, 1],
+        "Policy_Stu": [2, 2, 1, 1, 2],
+        "Minority_Stu": [2, 1, 2, 2, 1],
+        "Poor_Stu": [2, 1, 2, 1, 2],
+
+        "Father_Edu": [3, 4, 5, 2, 1],
+        "Mother_Edu": [2, 3, 4, 1, 2],
+
+        "Father_Occupation": [2, 3, 1, 4, 2],
+        "Mother_Occupation": [1, 2, 3, 4, 1],
+
+        "Time_Friends": [3, 2, 5, 1, 4],
+        "Time_SocicalMedia": [1, 5, 3, 2, 4],
+        "Time_Studying": [2, 4, 1, 5, 3],
+
+        "GPA": [3, 4, 1, 5, 2],
+
+        "Adapt_Learning_Uni": [4, 5, 2, 3, 1],
+        "Study_Methods": [4, 5, 3, 2, 1],
+
+        "SupportOf_Uni": [4, 5, 3, 2, 1],
+        "SupportOf_Lec": [5, 4, 2, 3, 1],
+        "Facilitie_Uni": [3, 4, 5, 1, 2],
+        "Quality_Lecturer": [4, 5, 3, 2, 1],
+        "TrainingCurriculum": [5, 4, 2, 3, 1],
+
+        "Competitive_Class": [3, 2, 4, 1, 5],
+        "InfuenceF_Friends": [4, 3, 5, 2, 1]
+    })
+
 
 @pytest.fixture
 def synthetic_survey_df():
     """
-    Generates a fully compliant, in-memory synthetic dataset matching 
-    the exact 11 features and GPA target schema from Database paper.xlsx.
-    
-    Guarantees exactly 20 samples per GPA class (100 total samples) so 
-    SMOTE resampling and cross-validation splits never crash on minority class bounds.
+    Generates a 100-row synthetic student survey dataset for CBADVAI model training & evaluation tests.
+    Includes all SELECTED_FEATURES and GPA target classes (1-5).
     """
     np.random.seed(42)
-    n_per_class = 20  # 20 samples * 5 classes = 100 total samples
-    
-    # Ensure every target GPA class (1 to 5) has exactly 20 samples
-    gpa = np.hstack([[c] * n_per_class for c in [1, 2, 3, 4, 5]])
-    np.random.shuffle(gpa)
-    
-    data = {}
-    for feature in EXPECTED_FEATURES:
-        if feature == 'Policy_Stu':
-            # Raw binary survey values: 1 (Yes) or 2 (No)
-            data[feature] = np.random.choice([1, 2], size=100)
-        else:
-            # 1 to 5 Likert scale (upper bound 6 is exclusive -> yields integers 1,2,3,4,5)
-            data[feature] = np.random.randint(1, 6, size=100)
-            
-    data['GPA'] = gpa
+    n_samples = 100
+
+    data = {col: np.random.randint(1, 6, size=n_samples) for col in SELECTED_FEATURES}
+    data['Policy_Stu'] = np.random.choice([0, 1], size=n_samples)
+    data['GPA'] = np.random.choice([1, 2, 3, 4, 5], size=n_samples)
+
     return pd.DataFrame(data)
