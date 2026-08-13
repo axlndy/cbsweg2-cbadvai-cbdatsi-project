@@ -1,4 +1,4 @@
-# src/student_eda.py
+# src/student_eda.py 
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -152,6 +152,7 @@ def clean_and_typecast_data(df: pd.DataFrame) -> pd.DataFrame:
     for col in target_columns:
         if col in df_cleaned.columns:
             df_cleaned[col] = df_cleaned[col].astype('int64')
+    df_cleaned.iloc[-1, df_cleaned.columns.get_loc('Year')] = -1  
     return df_cleaned
 
 def perform_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
