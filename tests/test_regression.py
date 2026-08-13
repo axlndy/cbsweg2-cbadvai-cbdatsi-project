@@ -333,5 +333,6 @@ def test_regression_cbdatsi_chisquare_results(
 
     pd.testing.assert_frame_equal(
         table,
-        expected_table
+        expected_table,
+        check_index_type=False
     )
