@@ -1,3 +1,4 @@
+# tests/test_inference.py
 import pandas as pd
 import pytest
 
@@ -125,7 +126,7 @@ def test_chisquare_known_result():
         perform_chisquare_independence(df)
     )
 
-    # Mathematical expected values for this known table
+    # Mathematical expected values
     assert chi2 == pytest.approx(
         20.0,
         abs=1e-10
@@ -138,16 +139,21 @@ def test_chisquare_known_result():
 
     assert dof == 4
 
-    # Also verify that the actual contingency table
-    # was constructed correctly.
+    # Verify the actual contingency table.
+    # pd.crosstab() assigns names to the index and columns.
     expected_table = pd.DataFrame(
         {
             1: [30, 10, 20],
             2: [20, 20, 20],
             3: [10, 30, 20],
         },
-        index=[0, 1, 2]
+        index=pd.Index(
+            [0, 1, 2],
+            name="Cluster"
+        )
     )
+
+    expected_table.columns.name = "GPA"
 
     pd.testing.assert_frame_equal(
         table,
@@ -162,15 +168,17 @@ def test_chisquare_known_result():
 def test_chisquare_custom_column_names():
     """
     Verifies that custom target and cluster column names
-    are supported while still producing the correct result.
+    are supported.
     """
 
     df = pd.DataFrame({
         "StudentCluster": [
-            0, 0, 0, 1, 1, 1
+            0, 0, 0,
+            1, 1, 1
         ],
         "StudentGPA": [
-            1, 1, 2, 1, 2, 2
+            1, 1, 2,
+            1, 2, 2
         ],
     })
 
@@ -187,8 +195,10 @@ def test_chisquare_custom_column_names():
     assert isinstance(dof, int)
 
     assert not table.empty
-
     assert table.shape == (2, 2)
+
+    assert table.index.name == "StudentCluster"
+    assert table.columns.name == "StudentGPA"
 
 
 # ============================================================
@@ -255,3 +265,6 @@ def test_chisquare_zero_variance():
     assert dof == 0
 
     assert table.loc[0, 3] == 5
+
+    assert table.index.name == "Cluster"
+    assert table.columns.name == "GPA"
