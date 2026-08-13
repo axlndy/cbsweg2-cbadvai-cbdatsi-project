@@ -24,7 +24,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-        cache: 'pip'  # Fast dependency caching from your branch
+        cache: 'pip'
 
     - name: Install System Dependencies for Data Visualization
       run: |
@@ -40,10 +40,6 @@ jobs:
     - name: Run Test Suite and Check Coverage
       env:
         PYTHONPATH: .
-        MPLBACKEND: Agg  # Crucial headless rendering fix from your branch
+        MPLBACKEND: Agg
       run: |
-<<<<<<< HEAD
         python -m pytest -v --cov=src --cov-report=term-missing
-=======
-        python -m pytest --cov=src/cbdatsi --cov-report=term-missing
->>>>>>> origin/main
