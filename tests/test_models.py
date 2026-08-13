@@ -79,7 +79,7 @@ def test_ordinal_lr_determinism_and_binary_estimators(synthetic_survey_df):
     # Verify K-1 binary estimators contract for 5 classes
     classifier = pipe1.named_steps['classifier']
     assert isinstance(classifier, FrankHallOrdinalClassifier)
-    assert len(classifier.estimators_) == 4, "Frank & Hall should create 4 binary estimators for 5 classes!"
+    assert len(classifier.models_) == 4, "Frank & Hall should create 4 binary estimators for 5 classes!"
 
 
 def test_mlp_neural_network_stability_and_reproducibility(synthetic_survey_df):
