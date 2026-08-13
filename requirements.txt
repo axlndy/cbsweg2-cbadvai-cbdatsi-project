@@ -1,8 +1,10 @@
-pandas
 numpy
-scikit-learn
-imbalanced-learn
+pandas
+openpyxl
 matplotlib
 seaborn
-openpyxl
+scikit-learn
+scipy
+imbalanced-learn
 pytest
+pytest-cov
