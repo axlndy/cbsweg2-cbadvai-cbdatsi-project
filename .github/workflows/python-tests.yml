@@ -1,4 +1,4 @@
-name: Automated Python Analytics Tests
+name: Automated Python Analytics Tests & Release
 
 on:
   push:
@@ -11,6 +11,12 @@ on:
       - main
       - development
   workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  VERSION: v1.0.0
 
 jobs:
   build:
@@ -43,3 +49,18 @@ jobs:
         MPLBACKEND: Agg
       run: |
         python -m pytest -v --cov=src --cov-report=term-missing
+
+    - name: Release Artifacts
+      run: |
+        zip -r release-${{ env.VERSION }}.zip \
+          src/ \
+          tests/ \
+          requirements.txt
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          release-${{ env.VERSION }}.zip
+        tag_name: ${{ env.VERSION }}
+        overwrite: true
