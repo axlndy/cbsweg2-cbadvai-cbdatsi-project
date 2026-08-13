@@ -1,6 +1,8 @@
 pandas
-openpyxl
+numpy
+scikit-learn
+imbalanced-learn
 matplotlib
 seaborn
+openpyxl
 pytest
-scikit-learn
