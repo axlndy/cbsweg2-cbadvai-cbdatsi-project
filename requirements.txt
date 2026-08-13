@@ -5,6 +5,11 @@ matplotlib
 seaborn
 scikit-learn
 scipy
+<<<<<<< HEAD
 imbalanced-learn
 pytest
 pytest-cov
+=======
+pytest-cov
+imbalanced-learn
+>>>>>>> origin/main
