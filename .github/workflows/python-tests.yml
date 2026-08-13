@@ -38,5 +38,6 @@ jobs:
     - name: Run Test Suite using Pytest
       env:
         PYTHONPATH: .
+        MPLBACKEND: Agg
       run: |
         python -m pytest
