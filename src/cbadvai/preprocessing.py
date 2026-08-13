@@ -32,7 +32,7 @@ def load_and_preprocess_data(
         df = pd.read_csv(file_path)
 
     if 'Policy_Stu' in df.columns:
-        df['Policy_Stu'] = df['Policy_Stu'].map({1: 1, 2: 0})
+        df['Policy_Stu'] = df['Policy_Stu'].map({1: 1, 2: 0, 0: 0})
 
     if cache_path:
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
