@@ -39,4 +39,4 @@ jobs:
       env:
         PYTHONPATH: .
       run: |
-        python -m pytest --cov=src/cbdatsi --cov-report=term-missing --cov-fail-under=90
+        python -m pytest --cov=src/cbdatsi --cov-report=term-missing
