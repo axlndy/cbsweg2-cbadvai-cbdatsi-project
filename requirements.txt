@@ -6,3 +6,4 @@ pytest
 scikit-learn
 scipy
 pytest-cov
+imbalanced-learn
