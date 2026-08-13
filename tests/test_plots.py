@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 
 from src.cbadvai.plots import (
-    plot_gpa_distribution,
-    plot_feature_weights_comparison,
-    plot_confusion_matrices
+    plot_model_metrics_comparison,
+    plot_confusion_matrices,
+    plot_feature_weights_heatmap,
+    plot_average_feature_weights
 )
-from src.cbadvai.preprocessing import SELECTED_FEATURES
 
 # Canonical expected feature contract
 EXPECTED_FEATURES = [
@@ -42,44 +42,37 @@ def cleanup_matplotlib_figures():
 # VISUALIZATION TESTS
 # ==============================================================================
 
-def test_plot_gpa_distribution_execution(synthetic_survey_df):
-    """Smoke test: Verifies GPA distribution plot executes and returns a valid Figure."""
-    y = synthetic_survey_df['GPA']
-    fig = plot_gpa_distribution(y)
+def test_plot_model_metrics_comparison_execution():
+    """Smoke test: Verifies model metric bar chart comparison renders without crashing."""
+    metrics_list = [
+        {'Macro_F1': 0.82, 'MAE': 0.15, 'QWK': 0.78},
+        {'Macro_F1': 0.85, 'MAE': 0.12, 'QWK': 0.81}
+    ]
+    model_names = ['Ordinal LR', 'Optimized MLP']
 
-    assert fig is not None
-    assert isinstance(fig, plt.Figure)
-    assert len(fig.axes) >= 1
+    # Test both 2-metric and 3-metric (include_qwk) modes
+    plot_model_metrics_comparison(metrics_list, model_names, include_qwk=False)
+    plot_model_metrics_comparison(metrics_list, model_names, include_qwk=True)
 
 
 def test_plot_confusion_matrices_execution():
-    """Smoke test: Verifies confusion matrix plotting executes across 4 grid subplots."""
-    cm_dummy = np.eye(5, dtype=int)
-    cm_lr = np.eye(5, dtype=int)
-    cm_mlp = np.eye(5, dtype=int)
-    cm_rf = np.eye(5, dtype=int)
+    """Smoke test: Verifies confusion matrix grid plotting executes across models."""
+    metrics_list = [
+        {'Confusion_Matrix': np.eye(5, dtype=int)},
+        {'Confusion_Matrix': np.eye(5, dtype=int)}
+    ]
+    model_names = ['Model A', 'Model B']
 
-    fig = plot_confusion_matrices(cm_dummy, cm_lr, cm_mlp, cm_rf)
-
-    assert fig is not None
-    assert isinstance(fig, plt.Figure)
-    assert len(fig.axes) >= 4
-
-    # Verify that titles are populated on subplots
-    titles = [ax.get_title() for ax in fig.axes if ax.get_title()]
-    assert len(titles) >= 4, "Subplots are missing title labels!"
+    plot_confusion_matrices(metrics_list, model_names)
 
 
-def test_plot_feature_weights_comparison_execution():
-    """Smoke test: Verifies feature weight comparison plot renders all 11 features without error."""
+def test_plot_feature_weights_plots_execution():
+    """Smoke test: Verifies feature importance heatmap and average bar chart render without error."""
     mock_weights = pd.DataFrame(
         np.random.rand(11, 4), 
         index=EXPECTED_FEATURES, 
-        columns=['Ordinal LR', 'MLP', 'RF (Initial)', 'RF (Tuned)']
+        columns=['Ordinal LR', 'Optimized MLP', 'Initial RF', 'Improved RF']
     )
 
-    fig = plot_feature_weights_comparison(mock_weights)
-
-    assert fig is not None
-    assert isinstance(fig, plt.Figure)
-    assert len(fig.axes) >= 1
+    plot_feature_weights_heatmap(mock_weights)
+    plot_average_feature_weights(mock_weights)
