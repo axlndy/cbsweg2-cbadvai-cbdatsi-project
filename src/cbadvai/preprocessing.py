@@ -31,7 +31,7 @@ def load_and_preprocess_data(
     else:
         df = pd.read_csv(file_path)
 
-    if 'Policy_Stu' in df.columns and 2 in df['Policy_Stu'].values:
+    if 'Policy_Stu' in df.columns:
         df['Policy_Stu'] = df['Policy_Stu'].map({1: 1, 2: 0})
 
     if cache_path:
