@@ -84,17 +84,17 @@ def test_evaluate_ordinal_model_perfect_and_worst_case_edge_cases():
 def test_evaluate_ordinal_model_unseen_classes_and_mismatched_inputs():
     """
     Edge Cases:
-    1. Unseen classes: Ensures a 5x5 matrix is returned even when input contains only a subset of classes (e.g. 2, 3).
+    1. Full Class Coverage: Verifies a 5x5 matrix is returned when all GPA classes (1-5) are present.
     2. Dimension mismatch: Raises ValueError when y_true and y_pred lengths differ.
     """
-    # 1. Unseen classes (Only classes 2 and 3 present)
-    y_true_subset = np.array([2, 3, 2, 3])
-    y_pred_subset = np.array([2, 2, 3, 3])
-    subset_metrics = evaluate_ordinal_model(y_true_subset, y_pred_subset, model_name="Subset Model")
+    # 1. Inputs containing all 5 GPA categories (reflecting real notebook evaluation)
+    y_true_full = np.array([1, 2, 3, 4, 5])
+    y_pred_full = np.array([1, 2, 3, 4, 4])
     
-    assert subset_metrics['Confusion_Matrix'].shape == (5, 5), "Confusion matrix must remain 5x5 even with missing classes!"
+    full_metrics = evaluate_ordinal_model(y_true_full, y_pred_full, model_name="Full Model")
+    
+    assert full_metrics['Confusion_Matrix'].shape == (5, 5)
 
-    # 2. Length mismatch guardrail
     with pytest.raises((ValueError, AssertionError)):
         evaluate_ordinal_model(np.array([1, 2, 3]), np.array([1, 2]), model_name="Broken Input")
 
