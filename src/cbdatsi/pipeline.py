@@ -14,7 +14,11 @@ def load_and_cache_dataset(raw_path: str, cache_path: str) -> pd.DataFrame:
     return df
 
 def validate_dataset(df: pd.DataFrame) -> bool:
-    """Validates dataset structure, missing values, and value ranges."""
+    """
+    Validates dataset structure, missing values, and allowed
+    value ranges for all survey variables.
+    """
+
     required_columns = [
         "Year", "Gender", "Policy_Stu", "Minority_Stu", "Poor_Stu",
         "Father_Edu", "Mother_Edu", "Father_Occupation", "Mother_Occupation",
@@ -23,11 +27,91 @@ def validate_dataset(df: pd.DataFrame) -> bool:
         "Facilitie_Uni", "Quality_Lecturer", "TrainingCurriculum",
         "Competitive_Class", "InfuenceF_Friends"
     ]
-    missing_columns = [col for col in required_columns if col not in df.columns]
+
+    # --------------------------------------------------------
+    # 1. Structural validation
+    # --------------------------------------------------------
+
+    missing_columns = [
+        col for col in required_columns
+        if col not in df.columns
+    ]
+
     if missing_columns:
-        raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
-    if df[required_columns].isnull().any().any():
-        raise ValueError("Dataset contains missing values in required columns.")
+        raise ValueError(
+            f"Missing required columns: {', '.join(missing_columns)}"
+        )
+
+    # --------------------------------------------------------
+    # 2. Completeness validation
+    # --------------------------------------------------------
+
+    missing_value_columns = [
+        col for col in required_columns
+        if df[col].isnull().any()
+    ]
+
+    if missing_value_columns:
+        raise ValueError(
+            "Dataset contains missing values in: "
+            + ", ".join(missing_value_columns)
+        )
+
+    # --------------------------------------------------------
+    # 3. Value-range validation
+    # --------------------------------------------------------
+
+    valid_ranges = {
+        "Year": (1, 5),
+        "Gender": (1, 2),
+        "Policy_Stu": (1, 2),
+        "Minority_Stu": (1, 2),
+        "Poor_Stu": (1, 2),
+
+        "Father_Edu": (1, 6),
+        "Mother_Edu": (1, 6),
+
+        "Father_Occupation": (1, 8),
+        "Mother_Occupation": (1, 8),
+
+        "Time_Friends": (1, 5),
+        "Time_SocicalMedia": (1, 5),
+        "Time_Studying": (1, 5),
+
+        "GPA": (1, 5),
+
+        "Adapt_Learning_Uni": (1, 5),
+        "Study_Methods": (1, 5),
+
+        "SupportOf_Uni": (1, 5),
+        "SupportOf_Lec": (1, 5),
+        "Facilitie_Uni": (1, 5),
+        "Quality_Lecturer": (1, 5),
+        "TrainingCurriculum": (1, 5),
+
+        "Competitive_Class": (1, 5),
+        "InfuenceF_Friends": (1, 5),
+    }
+
+    for column, (minimum, maximum) in valid_ranges.items():
+
+        if not pd.api.types.is_numeric_dtype(df[column]):
+            raise ValueError(
+                f"Invalid data type in {column}: "
+                "expected numeric values."
+            )
+
+        invalid_values = df[
+            (df[column] < minimum)
+            | (df[column] > maximum)
+        ][column]
+
+        if not invalid_values.empty:
+            raise ValueError(
+                f"Invalid values in {column}: "
+                f"expected values between {minimum} and {maximum}."
+            )
+
     return True
 
 def clean_and_typecast_data(df: pd.DataFrame) -> pd.DataFrame:
