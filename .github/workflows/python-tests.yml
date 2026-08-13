@@ -42,7 +42,6 @@ jobs:
         PYTHONPATH: .
         MPLBACKEND: Agg  # Crucial headless rendering fix from your branch
       run: |
-<<<<<<< HEAD
         python -m pytest -v --cov=src --cov-report=term-missing
 =======
         python -m pytest --cov=src/cbdatsi --cov-report=term-missing
