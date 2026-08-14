@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 env:
-  VERSION: v1.0.0
+  VERSION: v1.0.${{ github.run_number }}
 
 jobs:
   build:
