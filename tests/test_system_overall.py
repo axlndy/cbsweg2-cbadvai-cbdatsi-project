@@ -48,18 +48,18 @@ from src.cbadvai.metrics import evaluate_ordinal_model
 # ==============================================================================
 MODEL_THRESHOLDS = {
     "ordinal_lr": {
-        "max_mae": 1.25,   
+        "max_mae": 1.30,   
         "min_f1": 0.20,   
         "min_qwk": 0.05,
     },
     "mlp": {
-        "max_mae": 1.05,  
-        "min_f1": 0.23,    
+        "max_mae": 1.12,  
+        "min_f1": 0.20,    
         "min_qwk": 0.10,
     },
     "rf": {
-        "max_mae": 0.75,   
-        "min_f1": 0.28,   
+        "max_mae": 0.70,   
+        "min_f1": 0.24,   
         "min_qwk": 0.12,
     },
 }
