@@ -35,7 +35,11 @@ from src.cbadvai.preprocessing import (
     get_train_test_split,
     SELECTED_FEATURES,
 )
-from src.cbadvai.models import build_pipeline
+from src.cbadvai.models import (
+    build_ordinal_lr_pipeline,
+    build_mlp_pipeline,
+    build_rf_pipeline
+)
 from src.cbadvai.metrics import evaluate_ordinal_model
 
 
@@ -232,7 +236,15 @@ def test_full_pipeline_end_to_end(model_type):
     thresholds = MODEL_THRESHOLDS[model_type]
     
     # 1. Build & Train Model Pipeline
-    model_pipeline = build_pipeline(model_type=model_type, random_state=42)
+    if model_type == "ordinal_lr":
+        model_pipeline = build_ordinal_lr_pipeline(random_state=42)
+    elif model_type == "mlp":
+        model_pipeline = build_mlp_pipeline(random_state=42)
+    elif model_type == "rf":
+        model_pipeline = build_rf_pipeline(random_state=42)
+    else:
+        pytest.fail(f"Unrecognized model type: {model_type}")
+
     model_pipeline.fit(X_train, y_train)
     
     # 2. Execute Inference on Isolated Test Set
