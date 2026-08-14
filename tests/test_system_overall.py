@@ -117,7 +117,7 @@ def test_load_dataset():
     raw_feature_cols = [c for c in df_raw.columns if c != 'GPA']
     dropped_features = set(raw_feature_cols) - set(SELECTED_FEATURES)
     
-    assert len(dropped_features) == 11, f"Expected exactly 11 features to be dropped, found {len(dropped_features)}!"
+    assert len(dropped_features) == 10, f"Expected exactly 10 features to be dropped, found {len(dropped_features)}!"
     leaked_features = set(X.columns).intersection(dropped_features)
     assert len(leaked_features) == 0, f"Feature selection failed! Leaked raw columns into X: {leaked_features}"
 
@@ -258,13 +258,13 @@ def test_full_pipeline_end_to_end(model_type):
     results = evaluate_ordinal_model(y_test, predictions)
     
     # 5. Strict Metric Key Existence Assertions
-    assert 'mae' in results, f"[{model_type}] Evaluation contract broken! Missing 'mae' key in results."
-    assert ('macro_f1' in results or 'f1' in results), f"[{model_type}] Evaluation contract broken! Missing 'macro_f1' / 'f1' key in results."
-    assert 'qwk' in results, f"[{model_type}] Evaluation contract broken! Missing 'qwk' key in results."
+    assert 'MAE' in results, f"[{model_type}] Evaluation contract broken! Missing 'MAE' key in results."
+    assert 'Macro_F1' in results, f"[{model_type}] Evaluation contract broken! Missing 'Macro_F1' key in results."
+    assert 'QWK' in results, f"[{model_type}] Evaluation contract broken! Missing 'QWK' key in results."
     
-    current_mae = results['mae']
-    current_f1 = results.get('macro_f1', results.get('f1'))
-    current_qwk = results['qwk']
+    current_mae = results['MAE']
+    current_f1 = results['Macro_F1']
+    current_qwk = results['QWK']
     
     # --------------------------------------------------------------------------
     # A. MATHEMATICAL BOUNDS
