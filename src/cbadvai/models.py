@@ -69,7 +69,7 @@ class FrankHallOrdinalClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         probas = self.predict_proba(X)
-        return self.classes_[np.argmax(probas, axis=1)]
+        return self.classes_[np.argmax(probas, axis=1)] + 1
 
 
 def build_ordinal_lr_pipeline(random_state=42):
