@@ -24,11 +24,11 @@ This repository serves as the primary development environment shared across CBSW
 
 ## Research Questions
 
-### CBDATSI (Principles of Data Science)
+### CBDATSI
 
 > *How do internal student behaviors interact with external institutional and policy support systems to characterize different profiles of academic achievement (GPA)?*
 
-### CBADVAI (Advanced Intelligent Systems)
+### CBADVAI
 
 > *How do internal behavioral habits and external institutional support systems interact to influence student academic performance, and which machine learning architecture best captures these complex relationships to predict learning outcomes?*
 
