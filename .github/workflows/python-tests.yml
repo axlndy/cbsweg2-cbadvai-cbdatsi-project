@@ -1,4 +1,4 @@
-name: Automated Python Analytics Tests
+name: Automated Python Analytics Tests & Release
 
 on:
   push:
@@ -12,6 +12,12 @@ on:
       - development
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+env:
+  VERSION: v1.0.${{ github.run_number }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,11 +25,14 @@ jobs:
     steps:
     - name: Checkout repository code
       uses: actions/checkout@v4
+      with:
+        lfs: true   # Ensures raw Excel files tracked with Git LFS are fully pulled
 
     - name: Set up Python Runtime Environment
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+        cache: 'pip'
 
     - name: Install System Dependencies for Data Visualization
       run: |
@@ -33,10 +42,33 @@ jobs:
     - name: Install Project Dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install pytest pytest-cov openpyxl
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Prepare Workspace Directories
+      run: |
+        mkdir -p data/processed data/raw
 
     - name: Run Test Suite and Check Coverage
       env:
         PYTHONPATH: .
+        MPLBACKEND: Agg
       run: |
-        python -m pytest --cov=src/cbdatsi --cov-report=term-missing
+        python -m pytest -v --cov=src --cov-report=term-missing
+
+    - name: Release Artifacts
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        zip -r release-${{ env.VERSION }}.zip \
+          src/ \
+          tests/ \
+          requirements.txt
+
+    - name: Create GitHub Release
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          release-${{ env.VERSION }}.zip
+        tag_name: ${{ env.VERSION }}
+        overwrite: true

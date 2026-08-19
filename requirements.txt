@@ -1,9 +1,10 @@
+numpy
 pandas
 openpyxl
 matplotlib
 seaborn
-pytest
 scikit-learn
 scipy
-pytest-cov
 imbalanced-learn
+pytest
+pytest-cov
