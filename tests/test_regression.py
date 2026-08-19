@@ -1,6 +1,7 @@
 # tests/test_regression.py
 import os
 
+import numpy as np
 import pandas as pd
 import pytest
 import scipy.stats as stats
@@ -20,6 +21,23 @@ from src.cbdatsi.modeling import (
 
 from src.cbdatsi.inference import (
     perform_chisquare_independence,
+)
+
+from src.cbadvai.preprocessing import (
+    load_and_preprocess_data,
+    get_train_test_split,
+    SELECTED_FEATURES,
+)
+
+from src.cbadvai.models import (
+    build_ordinal_lr_pipeline,
+    build_mlp_pipeline,
+    build_rf_pipeline,
+)
+
+from src.cbadvai.metrics import (
+    run_full_evaluation,
+    compute_summary_feature_weights,
 )
 
 
@@ -57,23 +75,104 @@ EXPECTED_CLUSTERING_FEATURES = [
 ]
 
 
+# Notebook-established initial test-set confusion matrices.
+EXPECTED_INITIAL_CONFUSION = {
+    "Dummy Baseline": np.array([
+        [0, 0, 15, 0, 0],
+        [0, 0, 22, 0, 0],
+        [0, 0, 238, 0, 0],
+        [0, 0, 138, 0, 0],
+        [0, 0, 21, 0, 0],
+    ]),
+
+    "Ordinal LR": np.array([
+        [5, 2, 1, 6, 1],
+        [4, 11, 1, 4, 2],
+        [43, 62, 73, 28, 32],
+        [26, 21, 30, 31, 30],
+        [3, 2, 4, 7, 5],
+    ]),
+
+    "Optimized MLP": np.array([
+        [4, 3, 4, 4, 0],
+        [4, 3, 7, 6, 2],
+        [23, 23, 98, 60, 34],
+        [17, 11, 45, 45, 20],
+        [0, 3, 5, 4, 9],
+    ]),
+
+    "Random Forest": np.array([
+        [1, 0, 12, 2, 0],
+        [0, 3, 17, 2, 0],
+        [3, 19, 148, 62, 6],
+        [1, 14, 63, 52, 8],
+        [0, 2, 7, 5, 7],
+    ]),
+}
+
+
+# Notebook-established final Improved RF confusion matrix.
+EXPECTED_FINAL_RF_CONFUSION = np.array([
+    [1, 0, 12, 2, 0],
+    [0, 3, 17, 2, 0],
+    [3, 20, 153, 56, 6],
+    [1, 12, 65, 52, 8],
+    [0, 2, 7, 5, 7],
+])
+
+
+# Threshold-based regression gates.
+#
+# These intentionally use >= / <= rather than requiring exact
+# floating-point metric values.
+INITIAL_PERFORMANCE_GATES = {
+    "Dummy Baseline": {
+        "min_f1": 0.14,
+        "max_mae": 0.55,
+        "min_qwk": -0.01,
+    },
+
+    "Ordinal LR": {
+        "min_f1": 0.22,
+        "max_mae": 1.20,
+        "min_qwk": 0.10,
+    },
+
+    "Optimized MLP": {
+        "min_f1": 0.25,
+        "max_mae": 0.98,
+        "min_qwk": 0.13,
+    },
+
+    "Random Forest": {
+        "min_f1": 0.30,
+        "max_mae": 0.65,
+        "min_qwk": 0.20,
+    },
+}
+
+
+FINAL_RF_GATE = {
+    "min_f1": 0.30,
+    "max_mae": 0.65,
+    "min_qwk": 0.20,
+}
+
+
 # ============================================================
-# FIXTURE
+# FIXTURES
 # ============================================================
 
 @pytest.fixture(scope="module")
-def actual_dataset(tmp_path_factory):
+def actual_cbdatsi_dataset(tmp_path_factory):
     """
-    Loads the actual CBDATSI dataset used by the notebook.
-
-    A temporary cache is used so that the regression tests
-    always begin from the repository's actual Excel dataset
-    rather than potentially loading a stale cache file.
+    Reproduces the CBDATSI notebook data-ingestion and
+    preprocessing path using the actual repository dataset.
     """
 
     if not os.path.exists(ACTUAL_DATA_PATH):
         pytest.fail(
-            f"Actual CBDATSI dataset not found at: "
+            f"Actual dataset not found at: "
             f"{ACTUAL_DATA_PATH}"
         )
 
@@ -86,119 +185,257 @@ def actual_dataset(tmp_path_factory):
         "dataset_cache.pkl"
     )
 
-    # --------------------------------------------------------
-    # Reproduce the notebook preprocessing pipeline
-    # --------------------------------------------------------
-
     df = load_and_cache_dataset(
         ACTUAL_DATA_PATH,
         cache_path
     )
 
-    validate_dataset(df)
+    assert validate_dataset(df) is True
 
     df = clean_and_typecast_data(df)
-
     df = perform_feature_engineering(df)
 
     return df
 
 
+@pytest.fixture(scope="module")
+def cbadvai_regression_artifacts(tmp_path_factory):
+    """
+    Reproduces the notebook's fixed 80/20 split and fits the
+    notebook-established winning configurations.
+
+    This regression fixture intentionally does NOT perform
+    hyperparameter tuning. Model selection is tested separately
+    by the system test.
+    """
+
+    if not os.path.exists(ACTUAL_DATA_PATH):
+        pytest.fail(
+            f"Actual dataset not found at: "
+            f"{ACTUAL_DATA_PATH}"
+        )
+
+    cache_dir = tmp_path_factory.mktemp(
+        "cbadvai_regression_cache"
+    )
+
+    cache_path = os.path.join(
+        cache_dir,
+        "dataset_cache.pkl"
+    )
+
+    X, y = load_and_preprocess_data(
+        file_path=ACTUAL_DATA_PATH,
+        use_cache=False,
+        cache_path=cache_path,
+    )
+
+    X_train, X_test, y_train, y_test = (
+        get_train_test_split(
+            X,
+            y,
+            test_size=0.20,
+            random_state=42
+        )
+    )
+
+    # --------------------------------------------------------
+    # Notebook-established OLR configuration
+    # l2 + C=0.01
+    # --------------------------------------------------------
+
+    lr = build_ordinal_lr_pipeline(
+        random_state=42
+    )
+
+    lr.set_params(
+        classifier__C=0.01,
+        classifier__penalty="l2",
+    )
+
+    lr.fit(X_train, y_train)
+
+    # --------------------------------------------------------
+    # Notebook-established MLP configuration
+    # Very Deep + tanh
+    # --------------------------------------------------------
+
+    mlp = build_mlp_pipeline(
+        random_state=42
+    )
+
+    mlp.set_params(
+        classifier__hidden_layer_sizes=(
+            128,
+            64,
+            32,
+            16,
+        ),
+        classifier__activation="tanh",
+    )
+
+    mlp.fit(X_train, y_train)
+
+    # --------------------------------------------------------
+    # Notebook-established Initial RF configuration
+    # --------------------------------------------------------
+
+    rf_initial = build_rf_pipeline(
+        random_state=42
+    )
+
+    rf_initial.set_params(
+        classifier__n_estimators=100,
+        classifier__max_depth=20,
+        classifier__min_samples_split=2,
+    )
+
+    rf_initial.fit(X_train, y_train)
+
+    # --------------------------------------------------------
+    # Notebook-established Improved RF configuration
+    # --------------------------------------------------------
+
+    rf_improved = build_rf_pipeline(
+        random_state=42
+    )
+
+    rf_improved.set_params(
+        classifier__n_estimators=300,
+        classifier__max_depth=None,
+        classifier__min_samples_split=2,
+        classifier__min_samples_leaf=1,
+        classifier__class_weight=None,
+    )
+
+    rf_improved.fit(X_train, y_train)
+
+    # --------------------------------------------------------
+    # Initial evaluation
+    # --------------------------------------------------------
+
+    models_initial, metrics_initial = (
+        run_full_evaluation(
+            X_train,
+            y_train,
+            X_test,
+            y_test,
+            lr,
+            mlp,
+            rf_initial,
+            rf_label="Random Forest",
+        )
+    )
+
+    # --------------------------------------------------------
+    # Final evaluation
+    # --------------------------------------------------------
+
+    models_final, metrics_final = (
+        run_full_evaluation(
+            X_train,
+            y_train,
+            X_test,
+            y_test,
+            lr,
+            mlp,
+            rf_improved,
+            rf_label="Improved RF",
+        )
+    )
+
+    # --------------------------------------------------------
+    # Feature weights
+    # --------------------------------------------------------
+
+    weights = compute_summary_feature_weights(
+        grid_lr=lr,
+        grid_mlp=mlp,
+        grid_rf_initial=rf_initial,
+        grid_rf_improved=rf_improved,
+        X_test=X_test,
+        y_test=y_test,
+        feature_names=SELECTED_FEATURES,
+    )
+
+    return {
+        "X": X,
+        "y": y,
+        "X_train": X_train,
+        "X_test": X_test,
+        "y_train": y_train,
+        "y_test": y_test,
+        "models_initial": models_initial,
+        "metrics_initial": metrics_initial,
+        "models_final": models_final,
+        "metrics_final": metrics_final,
+        "weights": weights,
+    }
+
+
 # ============================================================
-# DATASET REGRESSION
+# CBDATSI REGRESSION
 # ============================================================
 
 def test_regression_cbdatsi_data_integrity(
-    actual_dataset
+    actual_cbdatsi_dataset
 ):
     """
-    Verifies that the actual CBDATSI dataset still matches
-    the documented notebook baseline.
+    Locks the notebook-established CBDATSI dataset state.
 
-    Expected:
-        observations = 2170
+    Notebook baseline:
+        rows = 2170
         missing values = 0
-        duplicate rows = 226
+        duplicate rows = 0
     """
 
-    assert len(actual_dataset) == 2170, (
-        "Dataset row count drifted from 2170."
-    )
+    assert len(actual_cbdatsi_dataset) == 2170
 
     assert (
-        actual_dataset.isnull().sum().sum()
+        actual_cbdatsi_dataset.isnull().sum().sum()
         == 0
-    ), (
-        "Null values detected in the actual CBDATSI dataset."
     )
 
+    # The executed notebook reports zero duplicates after cleaning.
     assert (
-        actual_dataset.duplicated().sum()
-        == 226
-    ), (
-        "Duplicate row count drifted from 226."
+        actual_cbdatsi_dataset.duplicated().sum()
+        == 0
     )
 
 
 def test_regression_cbdatsi_clustering_specification(
-    actual_dataset
+    actual_cbdatsi_dataset
 ):
-    """
-    Verifies that the clustering model still uses exactly
-    the 11 variables specified in the CBDATSI analysis.
-    """
+    """Locks the 11-variable clustering specification."""
 
     features = get_clustering_features()
 
     assert len(features) == 11
+    assert features == EXPECTED_CLUSTERING_FEATURES
 
-    assert features == (
-        EXPECTED_CLUSTERING_FEATURES
-    )
-
-
-# ============================================================
-# K-MEANS REGRESSION
-# ============================================================
 
 def test_regression_cbdatsi_kmeans_silhouette(
-    actual_dataset
+    actual_cbdatsi_dataset
 ):
     """
-    Verifies that the K-Means analysis reproduces the
-    notebook's silhouette score.
-
-    Conditions:
-        n = 2170
-        clustering variables = 11
-        k = 3
-
-    Expected:
-        silhouette ≈ 0.1456
+    Locks the established K-Means configuration and
+    silhouette baseline.
     """
-
-    features = get_clustering_features()
-
-    assert len(features) == 11
 
     clustered_df, cluster_summary = (
         run_kmeans_clustering(
-            actual_dataset,
-            n_clusters=3
+            actual_cbdatsi_dataset,
+            n_clusters=3,
         )
     )
 
-    # Verify the clustering did not change the number
-    # of observations.
     assert len(clustered_df) == 2170
 
-    # Verify k=3 actually produced three clusters.
     assert (
         clustered_df["Cluster"].nunique()
         == 3
     )
 
-    # Verify the expected cluster summary structure.
     assert len(cluster_summary) == 3
 
     expected_summary_columns = (
@@ -216,45 +453,21 @@ def test_regression_cbdatsi_kmeans_silhouette(
 
     assert score == pytest.approx(
         0.1456,
-        abs=1e-4
-    ), (
-        "Silhouette score drifted from the "
-        "CBDATSI notebook baseline."
+        abs=1e-4,
     )
 
 
-# ============================================================
-# CHI-SQUARE REGRESSION
-# ============================================================
-
 def test_regression_cbdatsi_chisquare_results(
-    actual_dataset
+    actual_cbdatsi_dataset
 ):
     """
-    Verifies that the complete CBDATSI clustering-to-inference
-    pipeline reproduces the notebook's Chi-Square results.
-
-    Conditions:
-        n = 2170
-        clustering variables = 11
-        k = 3
-        inference = Cluster × GPA
-
-    Expected:
-        Chi-Square ≈ 43.2357
-        df = 8
-        p ≈ 7.9306e-7
-        minimum expected frequency ≈ 19.78
+    Locks the established clustering-to-Chi-Square output.
     """
-
-    features = get_clustering_features()
-
-    assert len(features) == 11
 
     clustered_df, _ = (
         run_kmeans_clustering(
-            actual_dataset,
-            n_clusters=3
+            actual_cbdatsi_dataset,
+            n_clusters=3,
         )
     )
 
@@ -266,55 +479,34 @@ def test_regression_cbdatsi_chisquare_results(
         )
     )
 
-    # --------------------------------------------------------
-    # 1. Statistical outputs
-    # --------------------------------------------------------
-
     assert chi2 == pytest.approx(
         43.2357,
-        abs=1e-4
-    ), (
-        "Chi-Square statistic drifted from "
-        "the notebook baseline."
+        abs=1e-4,
     )
 
-    assert dof == 8, (
-        "Degrees of freedom drifted from "
-        "the notebook baseline."
-    )
+    assert dof == 8
 
     assert p_val == pytest.approx(
         7.9306e-7,
-        rel=1e-4
-    ), (
-        "p-value drifted from the notebook baseline."
+        rel=1e-4,
     )
 
-    # --------------------------------------------------------
-    # 2. Contingency-table dimensions
-    # --------------------------------------------------------
-
     assert table.shape == (3, 5)
+    assert table.values.sum() == 2170
 
-    # --------------------------------------------------------
-    # 3. Expected-frequency assumption
-    # --------------------------------------------------------
-
+    # Chi-Square assumption.
     _, _, _, expected_freq = (
         stats.chi2_contingency(table)
     )
 
     assert expected_freq.min() == pytest.approx(
         19.78,
-        abs=1e-2
+        abs=1e-2,
     )
 
     assert expected_freq.min() >= 5
 
-    # --------------------------------------------------------
-    # 4. Exact observed contingency table
-    # --------------------------------------------------------
-
+    # Exact observed contingency table.
     expected_table = pd.DataFrame(
         {
             1: [27, 27, 19],
@@ -325,8 +517,8 @@ def test_regression_cbdatsi_chisquare_results(
         },
         index=pd.Index(
             [0, 1, 2],
-            name="Cluster"
-        )
+            name="Cluster",
+        ),
     )
 
     expected_table.columns.name = "GPA"
@@ -334,5 +526,382 @@ def test_regression_cbdatsi_chisquare_results(
     pd.testing.assert_frame_equal(
         table,
         expected_table,
-        check_index_type=False
+        check_index_type=False,
     )
+
+
+# ============================================================
+# CBADVAI DATA / SPLIT REGRESSION
+# ============================================================
+
+def test_regression_cbadvai_preprocessing_and_split(
+    cbadvai_regression_artifacts
+):
+    """
+    Locks the notebook's 11-feature preprocessing contract
+    and 80/20 holdout split.
+    """
+
+    X = cbadvai_regression_artifacts["X"]
+    y = cbadvai_regression_artifacts["y"]
+
+    X_train = cbadvai_regression_artifacts[
+        "X_train"
+    ]
+
+    X_test = cbadvai_regression_artifacts[
+        "X_test"
+    ]
+
+    y_train = cbadvai_regression_artifacts[
+        "y_train"
+    ]
+
+    y_test = cbadvai_regression_artifacts[
+        "y_test"
+    ]
+
+    assert X.shape == (2170, 11)
+
+    assert list(X.columns) == list(
+        SELECTED_FEATURES
+    )
+
+    assert not X.isnull().any().any()
+
+    assert set(
+        y.unique()
+    ).issubset({1, 2, 3, 4, 5})
+
+    assert X_train.shape == (
+        1736,
+        11,
+    )
+
+    assert X_test.shape == (
+        434,
+        11,
+    )
+
+    assert len(y_train) == 1736
+    assert len(y_test) == 434
+
+    # Explicit holdout leakage protection.
+    assert set(
+        X_train.index
+    ).isdisjoint(
+        set(X_test.index)
+    )
+
+    assert set(
+        y_train.index
+    ).isdisjoint(
+        set(y_test.index)
+    )
+
+
+# ============================================================
+# CBADVAI PERFORMANCE REGRESSION
+# ============================================================
+
+def _metrics_to_dict(
+    model_names,
+    metrics_list
+):
+    return dict(
+        zip(
+            model_names,
+            metrics_list
+        )
+    )
+
+
+def _assert_metric_gate(
+    metrics,
+    model_name,
+    gates
+):
+    result = metrics[model_name]
+
+    assert (
+        result["Macro_F1"]
+        >= gates["min_f1"]
+    )
+
+    assert (
+        result["MAE"]
+        <= gates["max_mae"]
+    )
+
+    assert (
+        result["QWK"]
+        >= gates["min_qwk"]
+    )
+
+    confusion = result[
+        "Confusion_Matrix"
+    ]
+
+    assert confusion.shape == (
+        5,
+        5,
+    )
+
+    assert confusion.sum() == 434
+
+    assert (
+        confusion >= 0
+    ).all()
+
+
+def test_regression_cbadvai_initial_model_performance(
+    cbadvai_regression_artifacts
+):
+    """
+    Protects the notebook's initial benchmark:
+
+        Dummy
+        Ordinal LR
+        Optimized MLP
+        Initial RF
+    """
+
+    metrics = _metrics_to_dict(
+        cbadvai_regression_artifacts[
+            "models_initial"
+        ],
+        cbadvai_regression_artifacts[
+            "metrics_initial"
+        ],
+    )
+
+    assert (
+        cbadvai_regression_artifacts[
+            "models_initial"
+        ]
+        == [
+            "Dummy Baseline",
+            "Ordinal LR",
+            "Optimized MLP",
+            "Random Forest",
+        ]
+    )
+
+    for model_name, gates in (
+        INITIAL_PERFORMANCE_GATES.items()
+    ):
+        _assert_metric_gate(
+            metrics,
+            model_name,
+            gates,
+        )
+
+    # Established finding:
+    # Initial RF had the highest Macro F1 among trained models.
+    assert (
+        metrics["Random Forest"]["Macro_F1"]
+        >= metrics["Ordinal LR"]["Macro_F1"]
+    )
+
+    assert (
+        metrics["Random Forest"]["Macro_F1"]
+        >= metrics["Optimized MLP"]["Macro_F1"]
+    )
+
+    assert (
+        metrics["Random Forest"]["Macro_F1"]
+        >= metrics["Dummy Baseline"]["Macro_F1"]
+    )
+
+    # Protect the actual notebook confusion matrices.
+    for (
+        model_name,
+        expected_matrix
+    ) in EXPECTED_INITIAL_CONFUSION.items():
+
+        np.testing.assert_array_equal(
+            metrics[model_name][
+                "Confusion_Matrix"
+            ],
+            expected_matrix,
+        )
+
+
+def test_regression_cbadvai_improved_rf_performance(
+    cbadvai_regression_artifacts
+):
+    """
+    Protects the notebook's final Improved RF result.
+    """
+
+    metrics = _metrics_to_dict(
+        cbadvai_regression_artifacts[
+            "models_final"
+        ],
+        cbadvai_regression_artifacts[
+            "metrics_final"
+        ],
+    )
+
+    assert (
+        cbadvai_regression_artifacts[
+            "models_final"
+        ]
+        == [
+            "Dummy Baseline",
+            "Ordinal LR",
+            "Optimized MLP",
+            "Improved RF",
+        ]
+    )
+
+    _assert_metric_gate(
+        metrics,
+        "Improved RF",
+        FINAL_RF_GATE,
+    )
+
+    improved = metrics[
+        "Improved RF"
+    ]
+
+    # Improved RF must dominate the trained models.
+    for model_name in [
+        "Ordinal LR",
+        "Optimized MLP",
+    ]:
+
+        assert (
+            improved["Macro_F1"]
+            >= metrics[model_name]["Macro_F1"]
+        )
+
+        assert (
+            improved["MAE"]
+            <= metrics[model_name]["MAE"]
+        )
+
+        assert (
+            improved["QWK"]
+            >= metrics[model_name]["QWK"]
+        )
+
+    initial = _metrics_to_dict(
+        cbadvai_regression_artifacts[
+            "models_initial"
+        ],
+        cbadvai_regression_artifacts[
+            "metrics_initial"
+        ],
+    )["Random Forest"]
+
+    # Improvement over initial RF.
+    assert (
+        improved["Macro_F1"]
+        >= initial["Macro_F1"]
+    )
+
+    assert (
+        improved["MAE"]
+        <= initial["MAE"]
+    )
+
+    assert (
+        improved["QWK"]
+        >= initial["QWK"]
+    )
+
+    np.testing.assert_array_equal(
+        improved["Confusion_Matrix"],
+        EXPECTED_FINAL_RF_CONFUSION,
+    )
+
+
+# ============================================================
+# CBADVAI FEATURE-WEIGHT REGRESSION
+# ============================================================
+
+def test_regression_cbadvai_feature_weight_summary(
+    cbadvai_regression_artifacts
+):
+    """
+    Protects the final four-model feature-weight mapping.
+
+    The notebook's established top overall drivers are:
+        Time_Friends
+        Quality_Lecturer
+        Time_SocicalMedia
+    """
+
+    weights = (
+        cbadvai_regression_artifacts[
+            "weights"
+        ]
+    )
+
+    assert isinstance(
+        weights,
+        pd.DataFrame
+    )
+
+    assert weights.shape == (
+        11,
+        4,
+    )
+
+    assert list(weights.index) == list(
+        SELECTED_FEATURES
+    )
+
+    assert list(weights.columns) == [
+        "Ordinal LR",
+        "Optimized MLP",
+        "Initial RF",
+        "Improved RF",
+    ]
+
+    assert not weights.isnull().any().any()
+
+    assert np.isfinite(
+        weights.to_numpy()
+    ).all()
+
+    assert (
+        weights >= 0
+    ).all().all()
+
+    assert (
+        weights <= 1
+    ).all().all()
+
+    # Every model's normalized weights must sum to 1.
+    for column in weights.columns:
+        assert (
+            weights[column].sum()
+            == pytest.approx(
+                1.0,
+                abs=1e-4,
+            )
+        )
+
+    overall_mean = weights.mean(
+        axis=1
+    )
+
+    assert (
+        overall_mean.sum()
+        == pytest.approx(
+            1.0,
+            abs=1e-4,
+        )
+    )
+
+    top_three = set(
+        overall_mean.nlargest(3).index
+    )
+
+    assert top_three == {
+        "Time_Friends",
+        "Quality_Lecturer",
+        "Time_SocicalMedia",
+    }

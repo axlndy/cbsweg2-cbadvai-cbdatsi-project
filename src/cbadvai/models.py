@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.model_selection import GridSearchCV, cross_validate
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE
 
@@ -131,7 +131,14 @@ def tune_ordinal_lr(X_train, y_train, cv):
 
 
 def tune_mlp(X_train, y_train, cv):
-    """Executes cross-validation across architectures/activations and fits the optimal MLP."""
+    """
+    Executes cross-validation across architectures/activations and fits
+    the optimal MLP.
+
+    In addition to the mean Macro F1, the individual fold scores are
+    retained so the five-fold model-selection process can be verified
+    directly by automated tests.
+    """
     architectures = {
         'Shallow-Narrow (32,)': (32,),
         'Shallow-Wide (128,)': (128,),
@@ -141,51 +148,84 @@ def tune_mlp(X_train, y_train, cv):
         'Deep-Wide (128, 64, 32)': (128, 64, 32),
         'Very Deep (128, 64, 32, 16)': (128, 64, 32, 16)
     }
+
     activations = ['relu', 'tanh', 'logistic']
     results = []
 
     for arch_name, sizes in architectures.items():
         for act in activations:
+
             mlp_inst = MLPClassifier(
-                hidden_layer_sizes=sizes, 
-                activation=act, 
-                solver='adam', 
-                early_stopping=True, 
-                n_iter_no_change=15, 
-                max_iter=1500, 
-                random_state=42, 
+                hidden_layer_sizes=sizes,
+                activation=act,
+                solver='adam',
+                early_stopping=True,
+                n_iter_no_change=15,
+                max_iter=1500,
+                random_state=42,
                 alpha=0.0001
             )
+
             pipe = build_mlp_pipeline()
             pipe.steps[-1] = ('classifier', mlp_inst)
-            
-            scores = cross_val_score(pipe, X_train, y_train, cv=cv, scoring='f1_macro', n_jobs=-1)
-            results.append({
-                'Architecture': arch_name, 
-                'Activation': act, 
+
+            cv_output = cross_validate(
+                pipe,
+                X_train,
+                y_train,
+                cv=cv,
+                scoring='f1_macro',
+                n_jobs=-1,
+                return_train_score=False
+            )
+
+            scores = cv_output['test_score']
+
+            row = {
+                'Architecture': arch_name,
+                'Activation': act,
                 'Mean F1': np.mean(scores),
                 'sizes': sizes
-            })
+            }
+
+            # Explicitly retain every validation-fold result.
+            for fold_number, score in enumerate(scores, start=1):
+                row[f'Fold_{fold_number}_F1'] = score
+
+            results.append(row)
 
     results_df = pd.DataFrame(results)
-    best_row = results_df.loc[results_df['Mean F1'].idxmax()]
+
+    best_row = results_df.loc[
+        results_df['Mean F1'].idxmax()
+    ]
 
     best_mlp = MLPClassifier(
-        hidden_layer_sizes=best_row['sizes'], 
-        activation=best_row['Activation'], 
-        solver='adam', 
-        early_stopping=True, 
-        n_iter_no_change=15, 
-        max_iter=1500, 
-        random_state=42, 
+        hidden_layer_sizes=best_row['sizes'],
+        activation=best_row['Activation'],
+        solver='adam',
+        early_stopping=True,
+        n_iter_no_change=15,
+        max_iter=1500,
+        random_state=42,
         alpha=0.0001
     )
 
     grid_mlp = build_mlp_pipeline()
-    grid_mlp.steps[-1] = ('classifier', best_mlp)
+    grid_mlp.steps[-1] = (
+        'classifier',
+        best_mlp
+    )
+
+    # Fit the selected architecture on the complete training set.
     grid_mlp.fit(X_train, y_train)
 
-    return grid_mlp, results_df, list(architectures.keys()), best_row
+    return (
+        grid_mlp,
+        results_df,
+        list(architectures.keys()),
+        best_row
+    )
 
 
 def tune_initial_rf(X_train, y_train, cv):
